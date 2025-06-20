@@ -1,12 +1,13 @@
 'use client'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { AUTH_CONFIG } from '@/lib/config'
 
 export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY!)
     if (token) {
       router.push('/tasks')
     } else {

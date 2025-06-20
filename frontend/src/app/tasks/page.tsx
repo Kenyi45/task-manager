@@ -54,7 +54,7 @@ export default function TasksPage() {
 
   // Verificar autenticación usando configuración
   useEffect(() => {
-    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY!);
     if (!token) {
       router.push('/login');
     }
@@ -125,8 +125,8 @@ export default function TasksPage() {
    * Maneja el cierre de sesión usando configuración
    */
   const handleLogout = () => {
-    localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
-    localStorage.removeItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY!);
+    localStorage.removeItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY!);
     router.push('/login');
   };
 

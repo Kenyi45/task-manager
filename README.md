@@ -149,6 +149,9 @@ La aplicación frontend estará disponible en `http://localhost:3000/`
 - `PUT /api/tasks/{id}/` - Actualizar una tarea
 - `DELETE /api/tasks/{id}/` - Eliminar una tarea
 
+### Documentación
+- `/api/docs/` - Documentación de la API
+
 Todos los endpoints de tareas requieren autenticación mediante token Bearer.
 
 ## Notas de Desarrollo

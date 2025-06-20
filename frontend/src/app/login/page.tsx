@@ -35,7 +35,7 @@ export default function LoginPage() {
 
   // Verificar si ya está autenticado usando configuración
   useEffect(() => {
-    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY!);
     if (token) {
       router.push('/tasks');
     }
@@ -57,8 +57,8 @@ export default function LoginPage() {
 
     try {
       const response = await login(formData);
-      localStorage.setItem(AUTH_CONFIG.TOKEN_STORAGE_KEY, response.access);
-      localStorage.setItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY, response.refresh);
+      localStorage.setItem(AUTH_CONFIG.TOKEN_STORAGE_KEY!, response.access);
+      localStorage.setItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY!, response.refresh);
       router.push('/tasks');
     } catch (err: any) {
       setError(err.message || 'Error de autenticación. Verifica tus credenciales.');
