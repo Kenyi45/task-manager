@@ -40,6 +40,23 @@ export interface PaginatedResponse<T> {
     previous: string | null;
 }
 
+// Pagination types
+export interface PaginationParams {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    ordering?: string;
+}
+
+export interface PaginationState {
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
 // User-related types
 export interface User {
     id: number;
@@ -131,11 +148,18 @@ export interface ApiServiceInterface {
 }
 
 export interface TaskServiceInterface {
-    getTasks(): Promise<PaginatedResponse<Task>>;
+    getTasks(params?: PaginationParams): Promise<PaginatedResponse<Task>>;
     getTask(id: number): Promise<Task>;
     createTask(data: TaskCreate): Promise<Task>;
     updateTask(id: number, data: TaskUpdate): Promise<Task>;
     deleteTask(id: number): Promise<void>;
+    searchTasksByTitle(title: string): Promise<Task[]>;
+    getTaskStats(): Promise<{
+        total: number;
+        recent: number;
+        withDescription: number;
+        averageWordCount: number;
+    }>;
 }
 
 export interface AuthServiceInterface {
@@ -147,7 +171,7 @@ export interface AuthServiceInterface {
 
 // Repository interfaces - Repository Pattern
 export interface TaskRepositoryInterface {
-    findAll(): Promise<Task[]>;
+    findAll(params?: PaginationParams): Promise<PaginatedResponse<Task>>;
     findById(id: number): Promise<Task>;
     create(data: TaskCreate): Promise<Task>;
     update(id: number, data: TaskUpdate): Promise<Task>;

@@ -10,7 +10,8 @@ import {
   Task, 
   TaskCreate, 
   TaskUpdate, 
-  PaginatedResponse 
+  PaginatedResponse,
+  PaginationParams 
 } from '@/types';
 
 export class TaskService implements TaskServiceInterface {
@@ -21,20 +22,12 @@ export class TaskService implements TaskServiceInterface {
   }
 
   /**
-   * Obtiene todas las tareas
+   * Obtiene todas las tareas con paginación
    */
-  async getTasks(): Promise<PaginatedResponse<Task>> {
+  async getTasks(params?: PaginationParams): Promise<PaginatedResponse<Task>> {
     try {
-      const tasks = await this.taskRepository.findAll();
-      
-      // Simulamos una respuesta paginada para compatibilidad
-      // En un escenario real, el repository manejaría la paginación
-      return {
-        results: tasks,
-        count: tasks.length,
-        next: null,
-        previous: null,
-      };
+      const response = await this.taskRepository.findAll(params);
+      return response;
     } catch (error) {
       throw this.handleServiceError(error, 'Error al obtener las tareas');
     }
@@ -107,8 +100,8 @@ export class TaskService implements TaskServiceInterface {
       }
 
       // Fallback: filtrar tareas localmente
-      const allTasks = await this.taskRepository.findAll();
-      return allTasks.filter(task => 
+      const response = await this.taskRepository.findAll();
+      return response.results.filter(task => 
         task.title.toLowerCase().includes(title.toLowerCase())
       );
     } catch (error) {
@@ -126,7 +119,8 @@ export class TaskService implements TaskServiceInterface {
     averageWordCount: number;
   }> {
     try {
-      const tasks = await this.taskRepository.findAll();
+      const response = await this.taskRepository.findAll();
+      const tasks = response.results;
       
       const recent = tasks.filter(task => {
         const taskDate = new Date(task.created_at);
@@ -148,7 +142,7 @@ export class TaskService implements TaskServiceInterface {
       const averageWordCount = tasks.length > 0 ? Math.round(totalWords / tasks.length) : 0;
 
       return {
-        total: tasks.length,
+        total: response.count, // Usar el total de la respuesta paginada
         recent,
         withDescription,
         averageWordCount,

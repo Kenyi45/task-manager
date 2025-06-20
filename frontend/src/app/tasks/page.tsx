@@ -8,16 +8,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Calendar, 
-  Clock, 
-  Eye, 
-  Edit3, 
-  Trash2, 
-  LogOut, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  Eye,
+  Edit3,
+  Trash2,
+  LogOut,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -30,6 +30,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { Task, TaskCreate, TaskUpdate } from '@/types';
 import TaskForm from '@/components/TaskForm';
 import TaskModal from '@/components/TaskModal';
+import Pagination from '@/components/Pagination';
 import { formatDateLima } from '@/lib/dateUtils';
 import { AUTH_CONFIG } from '@/lib/config';
 
@@ -39,10 +40,14 @@ export default function TasksPage() {
     data: tasks,
     loading,
     error,
+    pagination,
     createTask,
     updateTask,
     deleteTask,
-    refetch
+    refetch,
+    loadPage,
+    changePageSize,
+    searchWithPagination
   } = useTasks();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -51,6 +56,7 @@ export default function TasksPage() {
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRecent, setFilterRecent] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Verificar autenticación usando configuración
   useEffect(() => {
@@ -60,19 +66,28 @@ export default function TasksPage() {
     }
   }, [router]);
 
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
+
   /**
    * Maneja el envío del formulario de tareas (crear/actualizar)
    */
   const handleTaskSubmit = async (data: TaskCreate | TaskUpdate) => {
     setIsFormLoading(true);
-    
+
     try {
       if (selectedTask) {
         await updateTask(selectedTask.id, data as TaskUpdate);
       } else {
         await createTask(data as TaskCreate);
       }
-      
+
       handleFormClose();
     } catch (error) {
       console.error('Error al guardar tarea:', error);
@@ -131,20 +146,53 @@ export default function TasksPage() {
   };
 
   /**
-   * Filtra las tareas según búsqueda y filtros
+   * Maneja la búsqueda con debounce
+   */
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+
+    // Limpiar timeout anterior
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Crear nuevo timeout para debounce
+    const timeout = setTimeout(() => {
+      if (query.trim()) {
+        searchWithPagination(query.trim());
+      } else {
+        refetch();
+      }
+    }, 500);
+
+    setSearchTimeout(timeout);
+  };
+
+  /**
+   * Maneja los cambios de paginación
+   */
+  const handlePageChange = (page: number) => {
+    loadPage(page);
+  };
+
+  const handlePageSizeChange = (pageSize: number) => {
+    changePageSize(pageSize);
+  };
+
+  /**
+   * Las tareas ya vienen filtradas desde el servidor
+   * Solo aplicamos filtros locales si es necesario
    */
   const filteredTasks = tasks?.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = !filterRecent || task.is_recent;
-    return matchesSearch && matchesFilter;
+    return matchesFilter;
   }) || [];
 
   /**
    * Calcula estadísticas de las tareas
    */
   const taskStats = {
-    total: tasks?.length || 0,
+    total: pagination.totalItems || 0,
     recent: tasks?.filter(task => task.is_recent).length || 0,
     withDescription: tasks?.filter(task => task.description?.trim()).length || 0,
   };
@@ -183,7 +231,7 @@ export default function TasksPage() {
                 </div>
               </div>
             </div>
-            
+
             <button
               onClick={handleLogout}
               className="flex items-center space-x-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all duration-200 hover:scale-105"
@@ -209,7 +257,7 @@ export default function TasksPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50">
             <div className="flex items-center justify-between">
               <div>
@@ -221,7 +269,7 @@ export default function TasksPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50">
             <div className="flex items-center justify-between">
               <div>
@@ -244,24 +292,23 @@ export default function TasksPage() {
                 type="text"
                 placeholder="Buscar tareas..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setFilterRecent(!filterRecent)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all ${
-                  filterRecent 
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all ${filterRecent
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
                     : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <Filter className="w-4 h-4" />
                 <span className="font-medium">Recientes</span>
               </button>
-              
+
               <button
                 onClick={() => setShowCreateForm(true)}
                 disabled={loading}
@@ -303,7 +350,7 @@ export default function TasksPage() {
               </div>
             </div>
           ) : null}
-          
+
           {!filteredTasks || filteredTasks.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -313,7 +360,7 @@ export default function TasksPage() {
                 {searchQuery || filterRecent ? 'No se encontraron tareas' : 'No hay tareas disponibles'}
               </h3>
               <p className="text-gray-500 mb-6">
-                {searchQuery || filterRecent 
+                {searchQuery || filterRecent
                   ? 'Intenta ajustar tus filtros de búsqueda'
                   : 'Comienza creando tu primera tarea'}
               </p>
@@ -347,13 +394,13 @@ export default function TasksPage() {
                           </span>
                         )}
                       </div>
-                      
+
                       {task.description && (
                         <p className="text-gray-600 mb-3 line-clamp-2">
                           {task.description}
                         </p>
                       )}
-                      
+
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-3 h-3" />
@@ -367,7 +414,7 @@ export default function TasksPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEditTask(task)}
@@ -390,6 +437,19 @@ export default function TasksPage() {
             </div>
           )}
         </div>
+
+        {/* Paginación */}
+        {tasks && tasks.length > 0 && (
+          <div className="mt-6">
+            <Pagination
+              pagination={pagination}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              loading={loading}
+              className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50"
+            />
+          </div>
+        )}
       </div>
 
       {/* Task Form Modal */}

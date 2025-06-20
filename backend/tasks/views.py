@@ -7,6 +7,7 @@ Principio de Inversión de Dependencias (DIP): Depende de abstracciones (servici
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError, PermissionDenied
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 
@@ -74,6 +75,20 @@ class TaskListCreateView(BaseTaskView, generics.ListCreateAPIView):
     @extend_schema(
         summary='Listar tareas del usuario',
         description='Obtiene todas las tareas del usuario autenticado, ordenadas por fecha de creación',
+        parameters=[
+            OpenApiParameter(
+                name='search',
+                description='Buscar en título y descripción de las tareas',
+                required=False,
+                type=OpenApiTypes.STR
+            ),
+            OpenApiParameter(
+                name='ordering',
+                description='Ordenar por campo (ej: -created_at, title)',
+                required=False,
+                type=OpenApiTypes.STR
+            ),
+        ],
         responses={
             200: TaskSerializer(many=True),
             401: OpenApiResponse(description='No autenticado'),
@@ -84,8 +99,22 @@ class TaskListCreateView(BaseTaskView, generics.ListCreateAPIView):
         return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
-        """Obtiene las tareas usando el servicio"""
-        return self._task_service.get_user_tasks(self.request.user)
+        """Obtiene las tareas usando el servicio con filtros"""
+        queryset = self._task_service.get_user_tasks(self.request.user)
+        
+        # Filtro de búsqueda
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(description__icontains=search)
+            )
+        
+        # Ordenamiento
+        ordering = self.request.query_params.get('ordering', '-created_at')
+        if ordering:
+            queryset = queryset.order_by(ordering)
+        
+        return queryset
     
     @extend_schema(
         summary='Crear nueva tarea',

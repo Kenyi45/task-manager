@@ -5,7 +5,7 @@
  */
 
 import { ServiceFactory } from './factories/ServiceFactory';
-import { Task, TaskCreate, TaskUpdate, PaginatedResponse, AuthTokens, LoginCredentials } from '@/types';
+import { Task, TaskCreate, TaskUpdate, PaginatedResponse, AuthTokens, LoginCredentials, PaginationParams } from '@/types';
 import { API_CONFIG, AUTH_CONFIG } from '@/lib/config';
 
 // Instancia del servicio de tareas
@@ -28,8 +28,8 @@ export type { Task, TaskCreate };
  * Funciones legacy para compatibilidad con código existente
  */
 
-export const getTasks = async (page: number = 1): Promise<TaskListResponse> => {
-  const result = await taskService.getTasks();
+export const getTasks = async (params?: PaginationParams): Promise<TaskListResponse> => {
+  const result = await taskService.getTasks(params);
   return result;
 };
 

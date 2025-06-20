@@ -6,9 +6,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ServiceFactory } from '@/lib/factories/ServiceFactory';
-import { Task, TaskCreate, TaskUpdate, ApiError, UseApiState } from '@/types';
+import { Task, TaskCreate, TaskUpdate, ApiError, UseApiState, PaginationParams, PaginatedResponse, PaginationState } from '@/types';
 
 interface UseTasksReturn extends UseApiState<Task[]> {
+  pagination: PaginationState;
   createTask: (data: TaskCreate) => Promise<Task>;
   updateTask: (id: number, data: TaskUpdate) => Promise<Task>;
   deleteTask: (id: number) => Promise<void>;
@@ -19,12 +20,27 @@ interface UseTasksReturn extends UseApiState<Task[]> {
     withDescription: number;
     averageWordCount: number;
   }>;
+  loadPage: (page: number) => Promise<void>;
+  changePageSize: (pageSize: number) => Promise<void>;
+  searchWithPagination: (search: string, page?: number) => Promise<void>;
 }
 
 export const useTasks = (): UseTasksReturn => {
   const [data, setData] = useState<Task[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    pageSize: 5,
+    totalItems: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false,
+  });
+  const [currentParams, setCurrentParams] = useState<PaginationParams>({
+    page: 1,
+    pageSize: 5,
+  });
 
   const taskService = ServiceFactory.getTaskService();
 
@@ -41,21 +57,42 @@ export const useTasks = (): UseTasksReturn => {
   }, []);
 
   /**
-   * Carga inicial de tareas
+   * Función auxiliar para actualizar paginación
    */
-  const loadTasks = useCallback(async () => {
+  const updatePaginationState = useCallback((response: PaginatedResponse<Task>, params: PaginationParams) => {
+    const totalPages = Math.ceil(response.count / (params.pageSize || 5));
+    setPagination({
+      currentPage: params.page || 1,
+      pageSize: params.pageSize || 5,
+      totalItems: response.count,
+      totalPages,
+      hasNext: !!response.next,
+      hasPrevious: !!response.previous,
+    });
+  }, []);
+
+  /**
+   * Carga tareas con paginación
+   */
+  const loadTasks = useCallback(async (params?: PaginationParams) => {
     setLoading(true);
     setError(null);
     
+    const finalParams = params || currentParams;
+    
     try {
-      const response = await taskService.getTasks();
+      const response = await taskService.getTasks(finalParams);
       setData(response.results);
+      updatePaginationState(response, finalParams);
+      if (params) {
+        setCurrentParams(finalParams);
+      }
     } catch (err) {
       setError(handleError(err));
     } finally {
       setLoading(false);
     }
-  }, [taskService, handleError]);
+  }, [taskService, handleError, currentParams, updatePaginationState]);
 
   /**
    * Función de refetch
@@ -168,6 +205,21 @@ export const useTasks = (): UseTasksReturn => {
     }
   }, [taskService, handleError]);
 
+  /**
+   * Funciones de paginación
+   */
+  const loadPage = useCallback(async (page: number) => {
+    await loadTasks({ ...currentParams, page });
+  }, [loadTasks, currentParams]);
+
+  const changePageSize = useCallback(async (pageSize: number) => {
+    await loadTasks({ ...currentParams, pageSize, page: 1 });
+  }, [loadTasks, currentParams]);
+
+  const searchWithPagination = useCallback(async (search: string, page: number = 1) => {
+    await loadTasks({ ...currentParams, search, page });
+  }, [loadTasks, currentParams]);
+
   // Cargar tareas al montar el componente
   useEffect(() => {
     loadTasks();
@@ -177,11 +229,15 @@ export const useTasks = (): UseTasksReturn => {
     data,
     loading,
     error,
+    pagination,
     refetch,
     createTask,
     updateTask,
     deleteTask,
     searchTasks,
     getTaskStats,
+    loadPage,
+    changePageSize,
+    searchWithPagination,
   };
 }; 

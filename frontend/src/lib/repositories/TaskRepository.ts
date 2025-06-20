@@ -11,18 +11,34 @@ import {
   TaskCreate, 
   TaskUpdate, 
   PaginatedResponse,
+  PaginationParams,
   API_ENDPOINTS 
 } from '@/types';
 
 export class TaskRepository extends BaseRepository implements TaskRepositoryInterface {
   
   /**
-   * Obtiene todas las tareas del usuario
+   * Obtiene todas las tareas del usuario con paginación
    */
-  async findAll(): Promise<Task[]> {
+  async findAll(params?: PaginationParams): Promise<PaginatedResponse<Task>> {
     try {
-      const response = await this.apiService.get<PaginatedResponse<Task>>(API_ENDPOINTS.TASKS);
-      return this.transformResponse(response).results;
+      let url = API_ENDPOINTS.TASKS;
+      
+      if (params) {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.append('page', params.page.toString());
+        if (params.pageSize) searchParams.append('page_size', params.pageSize.toString());
+        if (params.search) searchParams.append('search', params.search);
+        if (params.ordering) searchParams.append('ordering', params.ordering);
+        
+        const queryString = searchParams.toString();
+        if (queryString) {
+          url += `?${queryString}`;
+        }
+      }
+      
+      const response = await this.apiService.get<PaginatedResponse<Task>>(url);
+      return this.transformResponse(response);
     } catch (error) {
       this.handleError(error);
     }
