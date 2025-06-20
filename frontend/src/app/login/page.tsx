@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { login } from '@/lib/api';
+import { AUTH_CONFIG } from '@/lib/config';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,9 +33,9 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Verificar si ya está autenticado
+  // Verificar si ya está autenticado usando configuración
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
     if (token) {
       router.push('/tasks');
     }
@@ -56,8 +57,8 @@ export default function LoginPage() {
 
     try {
       const response = await login(formData);
-      localStorage.setItem('access_token', response.access);
-      localStorage.setItem('refresh_token', response.refresh);
+      localStorage.setItem(AUTH_CONFIG.TOKEN_STORAGE_KEY, response.access);
+      localStorage.setItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY, response.refresh);
       router.push('/tasks');
     } catch (err: any) {
       setError(err.message || 'Error de autenticación. Verifica tus credenciales.');

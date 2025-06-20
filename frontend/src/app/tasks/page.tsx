@@ -31,6 +31,7 @@ import { Task, TaskCreate, TaskUpdate } from '@/types';
 import TaskForm from '@/components/TaskForm';
 import TaskModal from '@/components/TaskModal';
 import { formatDateLima } from '@/lib/dateUtils';
+import { AUTH_CONFIG } from '@/lib/config';
 
 export default function TasksPage() {
   const router = useRouter();
@@ -51,9 +52,9 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRecent, setFilterRecent] = useState(false);
 
-  // Verificar autenticación
+  // Verificar autenticación usando configuración
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
     if (!token) {
       router.push('/login');
     }
@@ -121,15 +122,13 @@ export default function TasksPage() {
   };
 
   /**
-   * Maneja el cierre de sesión
+   * Maneja el cierre de sesión usando configuración
    */
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
+    localStorage.removeItem(AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY);
     router.push('/login');
   };
-
-
 
   /**
    * Filtra las tareas según búsqueda y filtros
@@ -222,9 +221,9 @@ export default function TasksPage() {
               </div>
             </div>
           </div>
-
+          
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50">
-                    <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Con Descripción</p>
                 <p className="text-3xl font-bold text-purple-600">{taskStats.withDescription}</p>
@@ -248,10 +247,10 @@ export default function TasksPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
-                      </div>
+            </div>
             
             <div className="flex gap-3">
-                        <button
+              <button
                 onClick={() => setFilterRecent(!filterRecent)}
                 className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all ${
                   filterRecent 
@@ -261,16 +260,16 @@ export default function TasksPage() {
               >
                 <Filter className="w-4 h-4" />
                 <span className="font-medium">Recientes</span>
-                        </button>
+              </button>
               
-                        <button
+              <button
                 onClick={() => setShowCreateForm(true)}
                 disabled={loading}
                 className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                        >
+              >
                 <Plus className="w-4 h-4" />
                 <span className="font-medium">Nueva Tarea</span>
-                        </button>
+              </button>
             </div>
           </div>
         </div>
@@ -283,15 +282,15 @@ export default function TasksPage() {
               <div className="flex-1">
                 <p className="text-sm text-red-700 font-medium">Error: {error.message}</p>
               </div>
-                        <button
+              <button
                 onClick={refetch}
                 className="flex items-center space-x-1 text-red-600 hover:text-red-800 transition-colors"
-                        >
+              >
                 <RefreshCw className="w-4 h-4" />
                 <span className="text-sm font-medium">Reintentar</span>
-                        </button>
-                      </div>
-                    </div>
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Tasks List */}
@@ -302,7 +301,7 @@ export default function TasksPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Actualizando...</span>
               </div>
-          </div>
+            </div>
           ) : null}
           
           {!filteredTasks || filteredTasks.length === 0 ? (
@@ -316,13 +315,12 @@ export default function TasksPage() {
               <p className="text-gray-500 mb-6">
                 {searchQuery || filterRecent 
                   ? 'Intenta ajustar tus filtros de búsqueda'
-                  : '¡Crea tu primera tarea para comenzar!'
-                }
+                  : 'Comienza creando tu primera tarea'}
               </p>
               {!searchQuery && !filterRecent && (
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105 mx-auto"
+                  className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105 shadow-lg"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="font-medium">Crear Primera Tarea</span>
@@ -331,15 +329,15 @@ export default function TasksPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {filteredTasks.map((task, index) => (
-                <div 
-                  key={task.id} 
-                  className="px-6 py-6 hover:bg-gray-50/50 transition-all duration-200 group"
+              {filteredTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="group px-6 py-6 hover:bg-gray-50/50 transition-all duration-200"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                           {task.title}
                         </h3>
                         {task.is_recent && (
@@ -351,12 +349,12 @@ export default function TasksPage() {
                       </div>
                       
                       {task.description && (
-                        <p className="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
+                        <p className="text-gray-600 mb-3 line-clamp-2">
                           {task.description}
                         </p>
                       )}
                       
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-3 h-3" />
                           <span>Creada: {formatDateLima(task.created_at)}</span>
@@ -371,20 +369,20 @@ export default function TasksPage() {
                     </div>
                     
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
+                      <button
                         onClick={() => handleEditTask(task)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Editar tarea"
                       >
                         <Edit3 className="w-4 h-4" />
-                  </button>
-                <button
+                      </button>
+                      <button
                         onClick={() => handleDeleteTask(task.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar tarea"
                       >
                         <Trash2 className="w-4 h-4" />
-                </button>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -400,18 +398,14 @@ export default function TasksPage() {
           task={selectedTask}
           onSubmit={handleTaskSubmit}
           onCancel={handleFormClose}
-          isLoading={isFormLoading}
         />
       )}
 
-      {/* Task View Modal */}
+      {/* Task Detail Modal */}
       {showTaskModal && selectedTask && (
         <TaskModal
           task={selectedTask}
-          onClose={() => {
-            setShowTaskModal(false);
-            setSelectedTask(null);
-          }}
+          onClose={() => setShowTaskModal(false)}
         />
       )}
     </div>
